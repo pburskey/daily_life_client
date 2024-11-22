@@ -56,3 +56,13 @@ Feature: Sunny Day
     When I ask the service to save the communication
     Then the service responds with status code: 400
     Then the response has a message: "Please provide a communication"
+
+
+  Scenario: Simple Find Communications by part
+    Given a saved person
+    Then the person has an ID
+    Given a saved communication
+    Given a saved communication
+    When I ask the service to find communications associated with the party
+    Then the service responds with status code: 200
+    And 2 communications were found

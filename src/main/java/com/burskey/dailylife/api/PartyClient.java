@@ -17,6 +17,7 @@ public class PartyClient {
     private RestClient saveClient;
     private RestClient communicationSaveClient;
     private RestClient communicationFindByPartyAndIdClient;
+    private RestClient communicationFindByPartyClient;
 
 
     public static PartyClient Builder() {
@@ -60,7 +61,15 @@ public class PartyClient {
         return this;
     }
 
+    public PartyClient withCommunicationFindByParty(String aURI) {
+        DefaultUriBuilderFactory factory = new DefaultUriBuilderFactory(aURI);
 
+        RestClient restClient = RestClient.builder().uriBuilderFactory(factory).build();
+        this.communicationFindByPartyClient = restClient;
+
+
+        return this;
+    }
     public ResponseEntity save(Party party) {
 
         ResponseEntity<String> response = null;
@@ -172,5 +181,27 @@ public class PartyClient {
         return response;
     }
 
+    public ResponseEntity findCommunicationByPartyID(String partyID) {
+
+        ResponseEntity<String> response = null;
+        try {
+            response = this.communicationFindByPartyClient
+                    .get()
+                    .uri("{partyID}", partyID)
+                    .retrieve()
+                    .toEntity(String.class);
+
+        } catch (HttpClientErrorException ex) {
+            // Handle client errors (4xx)
+            return ResponseEntity.status(ex.getStatusCode()).body(ex.getResponseBodyAsString());
+        } catch (HttpServerErrorException ex) {
+            // Handle server errors (5xx)
+            return ResponseEntity.status(ex.getStatusCode()).body(ex.getResponseBodyAsString());
+        } catch (Exception ex) {
+            // Handle other exceptions
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred");
+        }
+        return response;
+    }
 
 }

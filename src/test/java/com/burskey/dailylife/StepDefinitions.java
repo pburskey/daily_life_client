@@ -83,7 +83,8 @@ public class StepDefinitions {
                 .withSave(this.partySaveURI)
                 .withFindByID(this.partyFindByIDURI)
                 .withCommunicationSave(this.communicationSaveURI)
-                .withCommunicationFindByPartyAndId(this.communicationFindByPartyAndCommunicationURI);
+                .withCommunicationFindByPartyAndId(this.communicationFindByPartyAndCommunicationURI)
+                .withCommunicationFindByParty(this.communicationFindByPartyURI);
         this.client = client;
     }
 
@@ -314,5 +315,22 @@ public class StepDefinitions {
         ObjectMapper mapper = new ObjectMapper();
         Communication aCommunication= mapper.readValue((String) this.response.getBody(), Communication.class);
         this.communication = aCommunication;
+    }
+
+    @When("I ask the service to find communications associated with the party")
+    public void i_ask_the_service_to_find_communications_associated_with_the_party() throws JsonProcessingException {
+        Assertions.assertNotNull(this.person.getId());
+
+        this.response = this.client.findCommunicationByPartyID(this.person.getId());
+
+    }
+    @Then("{int} communications were found")
+    public void communications_were_found(Integer int1) throws JsonProcessingException {
+        Assertions.assertNotNull(this.response);
+        ObjectMapper mapper = new ObjectMapper();
+        String json = (String)this.response.getBody();
+        List aList = mapper.readValue( json, List.class);
+        Assertions.assertNotNull(aList);
+        Assertions.assertEquals(int1, aList.size());
     }
 }
