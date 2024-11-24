@@ -40,7 +40,7 @@ public class APIGatewayHelper {
 
 
     public String constructBaseURIForEnvironment(String gatewayName, String anEnvironment) {
-        String appID = this.findIdForItemNamed("Basic AWS Api Gateway");
+        String appID = this.findIdForItemNamed(gatewayName);
         String pattern = "https://{0}.execute-api.{1}.amazonaws.com/{2}/";
 
         MessageFormat formatter = new MessageFormat(pattern);

@@ -94,7 +94,7 @@ public class StepDefinitions {
 
         AWSClientConfig config = new AWSClientConfig(this.accessKey, this.secretAccessKey, this.bucketName, this.region);
         APIGatewayHelper helper = APIGatewayHelper.With(config);
-        String baseURI = helper.constructBaseURIForEnvironment("Basic AWS Api Gateway", this.stage);
+        String baseURI = helper.constructBaseURIForEnvironment("Daily Life AWS Api Gateway", this.stage);
 
         LambdaResourceLoader loader = LambdaResourceLoader.BuildUsingBaseURI(baseURI);
         this.partySaveURI = loader.get(LambdaResourceLoader.Thing.PartySave);
