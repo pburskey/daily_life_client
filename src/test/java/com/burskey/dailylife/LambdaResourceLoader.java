@@ -23,7 +23,10 @@ public class LambdaResourceLoader {
         PartyFindByID("party/"),
         CommunicationSave("party/communication"),
         CommunicationFindByPartyAndCommunication("party/communication/"),
-        CommunicationFindByParty("party/communications/");
+        CommunicationFindByParty("party/communications/"),
+        TaskFindByPartyAndCommunication("party/task/"),
+        TaskFindByParty("party/tasks/"),
+        TaskSave("party/task");
 
         String extension = null;
 

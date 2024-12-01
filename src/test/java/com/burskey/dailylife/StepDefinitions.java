@@ -5,8 +5,12 @@ import com.burskey.dailylife.api.AWSClientConfig;
 import com.burskey.dailylife.api.PartyClient;
 import com.burskey.dailylife.party.domain.Communication;
 import com.burskey.dailylife.party.domain.Person;
+import com.burskey.dailylife.task.domain.*;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -14,8 +18,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.http.ResponseEntity;
 
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -30,6 +33,7 @@ public class StepDefinitions {
     String stackName = null;
     String stage = null;
     Person person = null;
+    SimpleTask task = null;
     private ResponseEntity response;
     private PartyClient client;
     private String partySaveURI;
@@ -37,7 +41,10 @@ public class StepDefinitions {
     private Communication communication;
     private String communicationSaveURI;
     private String communicationFindByPartyURI;
-    private String communicationFindByPartyAndCommunicationURI;
+    private String communicationFindByPartyAndIdURI;
+    private String taskSaveURI;
+    private String taskFindByPartyURI;
+    private String taskFindByPartyAndIdURI;
 
 
     @BeforeEach
@@ -76,15 +83,16 @@ public class StepDefinitions {
     }
 
 
-
     @Given("an AWS Client")
     public void an_aws_client() {
         PartyClient client = PartyClient.Builder()
                 .withSave(this.partySaveURI)
                 .withFindByID(this.partyFindByIDURI)
                 .withCommunicationSave(this.communicationSaveURI)
-                .withCommunicationFindByPartyAndId(this.communicationFindByPartyAndCommunicationURI)
-                .withCommunicationFindByParty(this.communicationFindByPartyURI);
+                .withCommunicationFindByPartyAndId(this.communicationFindByPartyAndIdURI)
+                .withCommunicationFindByParty(this.communicationFindByPartyURI)
+                .withTaskSave(this.taskSaveURI)
+                .withTaskFindByPartyAndId(this.taskFindByPartyAndIdURI);
         this.client = client;
     }
 
@@ -101,7 +109,10 @@ public class StepDefinitions {
         this.partyFindByIDURI = loader.get(LambdaResourceLoader.Thing.PartyFindByID);
         this.communicationSaveURI = loader.get(LambdaResourceLoader.Thing.CommunicationSave);
         this.communicationFindByPartyURI = loader.get(LambdaResourceLoader.Thing.CommunicationFindByParty);
-        this.communicationFindByPartyAndCommunicationURI = loader.get(LambdaResourceLoader.Thing.CommunicationFindByPartyAndCommunication);
+        this.communicationFindByPartyAndIdURI = loader.get(LambdaResourceLoader.Thing.CommunicationFindByPartyAndCommunication);
+        this.taskSaveURI = loader.get(LambdaResourceLoader.Thing.TaskSave);
+        this.taskFindByPartyURI = loader.get(LambdaResourceLoader.Thing.TaskFindByParty);
+        this.taskFindByPartyAndIdURI = loader.get(LambdaResourceLoader.Thing.TaskFindByPartyAndCommunication);
 
     }
 
@@ -121,10 +132,9 @@ public class StepDefinitions {
     }
 
 
-
     public String getFromEnvironmentOrProperty(String string) {
         String value = System.getenv(string);
-        if (value == null ){
+        if (value == null) {
             value = System.getProperty(string);
         }
         return value;
@@ -159,7 +169,6 @@ public class StepDefinitions {
     }
 
 
-
     @Given("that I want to save a person")
     public void that_i_want_to_save_a_person(io.cucumber.datatable.DataTable dataTable) {
         if (dataTable != null && !dataTable.isEmpty()) {
@@ -182,6 +191,7 @@ public class StepDefinitions {
 
         }
     }
+
     @When("I ask the service to save the person")
     public void i_ask_the_service_to_save_the_person() throws JsonProcessingException {
         Assertions.assertNotNull(this.person);
@@ -194,12 +204,12 @@ public class StepDefinitions {
         }
 
     }
+
     @Then("the person has an ID")
     public void the_person_has_an_id() {
         assertNotNull(this.person);
         assertNotNull(this.person.getId());
     }
-
 
 
     @Given("a saved person")
@@ -212,6 +222,7 @@ public class StepDefinitions {
         this.person = person;
         this.i_ask_the_service_to_save_the_person();
     }
+
     @When("I ask the service to find the person by ID")
     public void i_ask_the_service_to_find_the_person_by_id() throws JsonProcessingException {
         Assertions.assertNotNull(this.person);
@@ -223,6 +234,7 @@ public class StepDefinitions {
         this.person = aPerson;
 
     }
+
     @Then("the person is found")
     public void the_person_is_found() {
         Assertions.assertNotNull(this.person);
@@ -234,6 +246,7 @@ public class StepDefinitions {
     public void i_have_a_party_save_uri() {
         Assertions.assertNotNull(this.partySaveURI);
     }
+
     @Then("I have a party find by id uri")
     public void i_have_a_party_find_by_id_uri() {
         Assertions.assertNotNull(this.partyFindByIDURI);
@@ -254,6 +267,7 @@ public class StepDefinitions {
 
         }
     }
+
     @When("I associate the party with the communication")
     public void i_associate_the_party_with_the_communication() {
         Assertions.assertNotNull(this.communication);
@@ -261,14 +275,17 @@ public class StepDefinitions {
         Assertions.assertNotNull(this.person.getId());
         this.communication.setPartyID(this.person.getId());
     }
+
     @Then("the communication has a party")
     public void the_communication_has_a_party() {
         Assertions.assertNotNull(this.communication.getPartyID());
     }
+
     @Then("the communication does not have an ID")
     public void the_communication_does_not_have_an_id() {
         Assertions.assertNull(this.communication.getId());
     }
+
     @When("I ask the service to save the communication")
     public void i_ask_the_service_to_save_the_communication() throws JsonProcessingException {
         Assertions.assertNotNull(this.communication);
@@ -280,6 +297,7 @@ public class StepDefinitions {
             this.communication = aCommunication;
         }
     }
+
     @Then("the communication has an ID")
     public void the_communication_has_an_id() {
         Assertions.assertNotNull(this.communication.getId());
@@ -289,14 +307,17 @@ public class StepDefinitions {
     public void i_have_a_commmunication_save_uri() {
         Assertions.assertNotNull(this.communicationSaveURI);
     }
+
     @Then("I have a communication find by id uri")
     public void i_have_a_communication_find_by_id_uri() {
-        Assertions.assertNotNull(this.communicationFindByPartyAndCommunicationURI);
+        Assertions.assertNotNull(this.communicationFindByPartyAndIdURI);
     }
+
     @Then("I have a communication find by party id uri")
     public void i_have_a_communication_find_by_party_id_uri() {
         Assertions.assertNotNull(this.communicationFindByPartyURI);
     }
+
     @Given("a saved communication")
     public void a_saved_communication() throws JsonProcessingException {
         Communication aCommunication = new Communication();
@@ -306,6 +327,7 @@ public class StepDefinitions {
         this.communication = aCommunication;
         this.i_ask_the_service_to_save_the_communication();
     }
+
     @When("I ask the service to find the communication by id")
     public void i_ask_the_service_to_find_the_communication_by_id() throws JsonProcessingException {
         Assertions.assertNotNull(this.communication.getPartyID());
@@ -313,7 +335,7 @@ public class StepDefinitions {
 
         this.response = this.client.findCommunicationByPartyAndCommunicationID(this.communication.getPartyID(), this.communication.getId());
         ObjectMapper mapper = new ObjectMapper();
-        Communication aCommunication= mapper.readValue((String) this.response.getBody(), Communication.class);
+        Communication aCommunication = mapper.readValue((String) this.response.getBody(), Communication.class);
         this.communication = aCommunication;
     }
 
@@ -324,13 +346,95 @@ public class StepDefinitions {
         this.response = this.client.findCommunicationByPartyID(this.person.getId());
 
     }
+
     @Then("{int} communications were found")
     public void communications_were_found(Integer int1) throws JsonProcessingException {
         Assertions.assertNotNull(this.response);
         ObjectMapper mapper = new ObjectMapper();
-        String json = (String)this.response.getBody();
-        List aList = mapper.readValue( json, List.class);
+        String json = (String) this.response.getBody();
+        List aList = mapper.readValue(json, List.class);
         Assertions.assertNotNull(aList);
         Assertions.assertEquals(int1, aList.size());
+    }
+
+
+    @Given("a task with a simple status open closed machine")
+    public void a_task_with_a_simple_status_open_closed_machine(io.cucumber.datatable.DataTable dataTable) throws JsonProcessingException {
+        if (dataTable != null && !dataTable.isEmpty()) {
+
+            List<Map<String, String>> rows = dataTable.asMaps(String.class, String.class);
+            SimpleTask aTask = new SimpleTask();
+            for (Map<String, String> columns : rows) {
+                aTask.setTitle(columns.get("Title"));
+                aTask.setDescription(columns.get("Description"));
+                aTask.setCreationDate(new Date());
+            }
+            Map<String, String[]> progressionConfiguration = new HashMap();
+            SimpleStatus start = new SimpleStatus("open");
+            SimpleStatus end = new SimpleStatus("closed");
+            progressionConfiguration.put(start.getId(), new String[] {end.getId()});
+            progressionConfiguration.put(end.getId(), null);
+
+
+            Map<String, SimpleStatus> state = new HashMap<>();
+            state.put(start.getId(), start);
+            state.put(end.getId(), end);
+
+            aTask.setStatusStateMachine(new SimpleStatusStateMachine(progressionConfiguration, start.getId(), end.getId(), state));
+
+            this.task = aTask;
+
+//
+//            ObjectMapper mapper = new ObjectMapper();
+//            String json = mapper.writeValueAsString(new SimpleStatus("abc", "open"));
+//            json = mapper.writeValueAsString(new SimpleStatusStateMachine());
+//            json = mapper.writeValueAsString(this.task.getStatusStateMachine().getState());
+//            json = mapper.writeValueAsString(this.task.getStatusStateMachine().getEndState());
+//            json = mapper.writeValueAsString(this.task.getStatusStateMachine().getStartState());
+//            json = mapper.writeValueAsString(this.task.getStatusStateMachine().getType());
+//            json = mapper.writeValueAsString(this.task.getStatusStateMachine().getProgressionConfiguration());
+//            json = mapper.writeValueAsString(this.task.getStatusStateMachine());
+//
+//            json = mapper.writeValueAsString(this.task);
+//            Assertions.assertNotEquals(json, "");
+
+
+        }
+    }
+    public List<String> newWithValue(String aValue){
+        List aList = new ArrayList();
+        aList.add(aValue);
+        return aList;
+    }
+    @When("I ask the service to save the task")
+    public void i_ask_the_service_to_save_the_task() throws JsonProcessingException {
+        Assertions.assertNotNull(this.task);
+        Assertions.assertNotNull(this.client);
+        this.response = this.client.save(this.task);
+        if (this.response.getStatusCode().is2xxSuccessful()) {
+            ObjectMapper mapper = new ObjectMapper();
+            SimpleTask aTask = mapper.readValue((String) this.response.getBody(), SimpleTask.class);
+            this.task = aTask;
+        }
+    }
+
+    @Then("the task has an ID")
+    public void the_task_has_an_id() {
+        Assertions.assertNotNull(this.task);
+        Assertions.assertNotNull(this.task.getId());
+    }
+
+    @Then("the task is associated with a party")
+    public void the_task_is_associated_with_a_party() {
+        Assertions.assertNotNull(this.task);
+        Assertions.assertNotNull(this.task.getPartyID());
+    }
+
+    @When("I associate the party with the task")
+    public void i_associate_the_party_with_the_task() {
+        Assertions.assertNotNull(this.task);
+        Assertions.assertNotNull(this.person);
+        Assertions.assertNotNull(this.person.getId());
+        this.task.setPartyID(this.person.getId());
     }
 }

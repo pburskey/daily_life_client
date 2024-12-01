@@ -2,9 +2,15 @@ package com.burskey.dailylife.api;
 
 import com.burskey.dailylife.party.domain.Communication;
 import com.burskey.dailylife.party.domain.Party;
+import com.burskey.dailylife.task.domain.SimpleTask;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestClient;
@@ -18,7 +24,8 @@ public class PartyClient {
     private RestClient communicationSaveClient;
     private RestClient communicationFindByPartyAndIdClient;
     private RestClient communicationFindByPartyClient;
-
+    private RestClient taskSaveClient;
+    private RestClient taskFindByPartyAndIdClient;
 
     public static PartyClient Builder() {
         return new PartyClient();
@@ -38,6 +45,20 @@ public class PartyClient {
         return this;
     }
 
+    public PartyClient withTaskSave(String aURI) {
+
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
+        mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+
+        RestClient restClient = RestClient.builder().messageConverters(httpMessageConverters -> new MappingJackson2HttpMessageConverter(mapper)).baseUrl(aURI).build();
+
+//        RestClient restClient = RestClient.create(aURI);
+        this.taskSaveClient = restClient;
+        return this;
+    }
+
 
 
     public PartyClient withFindByID(String aURI) {
@@ -50,7 +71,15 @@ public class PartyClient {
 
         return this;
     }
+    public PartyClient withTaskFindByPartyAndId(String aURI) {
+        DefaultUriBuilderFactory factory = new DefaultUriBuilderFactory(aURI);
 
+        RestClient restClient = RestClient.builder().uriBuilderFactory(factory).build();
+        this.taskFindByPartyAndIdClient = restClient;
+
+
+        return this;
+    }
     public PartyClient withCommunicationFindByPartyAndId(String aURI) {
         DefaultUriBuilderFactory factory = new DefaultUriBuilderFactory(aURI);
 
@@ -204,4 +233,33 @@ public class PartyClient {
         return response;
     }
 
+    public ResponseEntity save(SimpleTask task) {
+        ResponseEntity<String> response = null;
+        try {
+            response = this.taskSaveClient.post()
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(task)
+                    .retrieve()
+                    .toEntity(String.class);
+
+            if (response.getStatusCode() == HttpStatus.OK) {
+                // Success
+                String body = response.getBody();
+
+            } else {
+                // Handle error
+            }
+
+        } catch (HttpClientErrorException ex) {
+            // Handle client errors (4xx)
+            return ResponseEntity.status(ex.getStatusCode()).body(ex.getResponseBodyAsString());
+        } catch (HttpServerErrorException ex) {
+            // Handle server errors (5xx)
+            return ResponseEntity.status(ex.getStatusCode()).body(ex.getResponseBodyAsString());
+        } catch (Exception ex) {
+            // Handle other exceptions
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred");
+        }
+        return response;
+    }
 }
