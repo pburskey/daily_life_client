@@ -26,6 +26,7 @@ public class PartyClient {
     private RestClient communicationFindByPartyClient;
     private RestClient taskSaveClient;
     private RestClient taskFindByPartyAndIdClient;
+    private RestClient taskFindByPartyIdClient;
 
     public static PartyClient Builder() {
         return new PartyClient();
@@ -76,10 +77,18 @@ public class PartyClient {
 
         RestClient restClient = RestClient.builder().uriBuilderFactory(factory).build();
         this.taskFindByPartyAndIdClient = restClient;
-
-
         return this;
     }
+
+    public PartyClient withTaskFindByParty(String taskFindByPartyURI) {
+        DefaultUriBuilderFactory factory = new DefaultUriBuilderFactory(taskFindByPartyURI);
+
+        RestClient restClient = RestClient.builder().uriBuilderFactory(factory).build();
+        this.taskFindByPartyIdClient = restClient;
+        return this;
+    }
+
+
     public PartyClient withCommunicationFindByPartyAndId(String aURI) {
         DefaultUriBuilderFactory factory = new DefaultUriBuilderFactory(aURI);
 
@@ -262,4 +271,54 @@ public class PartyClient {
         }
         return response;
     }
+
+
+
+    public ResponseEntity findTasksByPartyID(String partyID) {
+
+        ResponseEntity<String> response = null;
+        try {
+            response = this.taskFindByPartyIdClient
+                    .get()
+                    .uri("{partyID}", partyID)
+                    .retrieve()
+                    .toEntity(String.class);
+
+        } catch (HttpClientErrorException ex) {
+            // Handle client errors (4xx)
+            return ResponseEntity.status(ex.getStatusCode()).body(ex.getResponseBodyAsString());
+        } catch (HttpServerErrorException ex) {
+            // Handle server errors (5xx)
+            return ResponseEntity.status(ex.getStatusCode()).body(ex.getResponseBodyAsString());
+        } catch (Exception ex) {
+            // Handle other exceptions
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred");
+        }
+        return response;
+    }
+    public ResponseEntity findTaskByPartyAndTaskID(String partyID, String taskID) {
+
+        ResponseEntity<String> response = null;
+        try {
+            response = this.taskFindByPartyAndIdClient
+                    .get()
+                    .uri("{partyID}/{taskID}", partyID, taskID)
+                    .retrieve()
+                    .toEntity(String.class);
+
+        } catch (HttpClientErrorException ex) {
+            // Handle client errors (4xx)
+            return ResponseEntity.status(ex.getStatusCode()).body(ex.getResponseBodyAsString());
+        } catch (HttpServerErrorException ex) {
+            // Handle server errors (5xx)
+            return ResponseEntity.status(ex.getStatusCode()).body(ex.getResponseBodyAsString());
+        } catch (Exception ex) {
+            // Handle other exceptions
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred");
+        }
+        return response;
+    }
+
+
+
 }

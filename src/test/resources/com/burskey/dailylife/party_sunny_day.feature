@@ -2,9 +2,6 @@ Feature: Sunny Day
 
   Background:
     Given an AWS Stage: "dev"
-#    Given a property save uri: "https://zeb8w5qk26.execute-api.us-east-2.amazonaws.com/Stage/save"
-#    Given a property get by id uri: "https://zeb8w5qk26.execute-api.us-east-2.amazonaws.com/Stage/"
-#    Given a property get by category and name uri: "https://zeb8w5qk26.execute-api.us-east-2.amazonaws.com/Stage/find"
     Given an environment provided AWS Bucket Name
     Given an environment provided IAM Access Key
     Given an environment provided IAM Secret Access Key

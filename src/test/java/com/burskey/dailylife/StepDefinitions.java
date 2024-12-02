@@ -46,6 +46,7 @@ public class StepDefinitions {
     private String taskFindByPartyURI;
     private String taskFindByPartyAndIdURI;
     private TaskInProgress taskInProgress;
+    private SimpleTask[] tasks;
 
 
     @BeforeEach
@@ -54,6 +55,7 @@ public class StepDefinitions {
         this.person = null;
         this.communication = null;
         this.task = null;
+        this.tasks = null;
         this.taskInProgress = null;
     }
 
@@ -95,7 +97,8 @@ public class StepDefinitions {
                 .withCommunicationFindByPartyAndId(this.communicationFindByPartyAndIdURI)
                 .withCommunicationFindByParty(this.communicationFindByPartyURI)
                 .withTaskSave(this.taskSaveURI)
-                .withTaskFindByPartyAndId(this.taskFindByPartyAndIdURI);
+                .withTaskFindByPartyAndId(this.taskFindByPartyAndIdURI)
+                .withTaskFindByParty(this.taskFindByPartyURI);
         this.client = client;
     }
 
@@ -493,5 +496,40 @@ public class StepDefinitions {
         this.taskInProgress = this.task.changeTo(this.taskInProgress, next[0]);
     }
 
+
+
+    @When("I ask the service to get the task by id")
+    public void i_ask_the_service_to_get_the_task_by_id() throws JsonProcessingException {
+        Assertions.assertNotNull(this.task);
+
+        Assertions.assertNotNull(this.client);
+        this.response = this.client.findTaskByPartyAndTaskID(this.task.getPartyID(), this.task.getId());
+        if (this.response.getStatusCode().is2xxSuccessful()) {
+            ObjectMapper mapper = new ObjectMapper();
+            SimpleTask aTask = mapper.readValue((String) this.response.getBody(), SimpleTask.class);
+            this.task = aTask;
+        }
+    }
+    @Then("the task has been found")
+    public void the_task_has_been_found() {
+        Assertions.assertNotNull(this.task);
+    }
+    @When("I ask the service to get the task by party")
+    public void i_ask_the_service_to_get_the_task_by_party() throws JsonProcessingException {
+        Assertions.assertNotNull(this.task);
+
+        Assertions.assertNotNull(this.client);
+        this.response = this.client.findTasksByPartyID(this.task.getPartyID());
+        if (this.response.getStatusCode().is2xxSuccessful()) {
+            ObjectMapper mapper = new ObjectMapper();
+            SimpleTask[] tasks = mapper.readValue((String) this.response.getBody(), SimpleTask[].class);
+            this.tasks = tasks;
+        }
+    }
+
+    @Then("the tasks have been found")
+    public void the_tasks_have_been_found() {
+        Assertions.assertNotNull(this.tasks);
+    }
 
 }
