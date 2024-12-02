@@ -45,6 +45,7 @@ public class StepDefinitions {
     private String taskSaveURI;
     private String taskFindByPartyURI;
     private String taskFindByPartyAndIdURI;
+    private TaskInProgress taskInProgress;
 
 
     @BeforeEach
@@ -52,6 +53,8 @@ public class StepDefinitions {
         this.response = null;
         this.person = null;
         this.communication = null;
+        this.task = null;
+        this.taskInProgress = null;
     }
 
     @Given("an AWS Region: {string}")
@@ -437,4 +440,58 @@ public class StepDefinitions {
         Assertions.assertNotNull(this.person.getId());
         this.task.setPartyID(this.person.getId());
     }
+
+
+    @Given("a party task with a simple status open closed machine")
+    public void a_party_task_with_a_simple_status_open_closed_machine() {
+
+
+            SimpleTask aTask = new SimpleTask();
+                aTask.setTitle("Title");
+                aTask.setDescription("Description");
+                aTask.setCreationDate(new Date());
+
+            Map<String, String[]> progressionConfiguration = new HashMap();
+            SimpleStatus start = new SimpleStatus("open");
+            SimpleStatus end = new SimpleStatus("closed");
+            progressionConfiguration.put(start.getId(), new String[] {end.getId()});
+            progressionConfiguration.put(end.getId(), null);
+
+
+            Map<String, SimpleStatus> state = new HashMap<>();
+            state.put(start.getId(), start);
+            state.put(end.getId(), end);
+
+            aTask.setStatusStateMachine(new SimpleStatusStateMachine(progressionConfiguration, start.getId(), end.getId(), state));
+
+            this.task = aTask;
+
+
+
+    }
+    @When("I start work on the task")
+    public void i_start_work_on_the_task() {
+        Assertions.assertNotNull(this.task);
+        this.taskInProgress = this.task.start();
+    }
+    @Then("the task has a task in progress")
+    public void the_task_has_a_task_in_progress() {
+        Assertions.assertNotNull(this.task);
+        Assertions.assertNotNull(this.taskInProgress);
+    }
+    @Then("the status of the task in progress is {string}")
+    public void the_status_of_the_task_in_progress_is(String string) {
+        Assertions.assertNotNull(this.task);
+        Assertions.assertNotNull(this.taskInProgress);
+        Assertions.assertEquals(string, this.taskInProgress.getStatus().getStatus().getDescription());
+    }
+    @When("I change the status to the next available status")
+    public void i_change_the_status_to_the_next_available_status() {
+        Assertions.assertNotNull(this.task);
+        Assertions.assertNotNull(this.taskInProgress);
+        Status[] next = this.task.getStatusStateMachine().available(this.taskInProgress.getStatus().getStatus());
+        this.taskInProgress = this.task.changeTo(this.taskInProgress, next[0]);
+    }
+
+
 }

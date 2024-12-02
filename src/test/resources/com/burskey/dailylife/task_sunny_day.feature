@@ -26,4 +26,20 @@ Feature: Sunny Day
     Then the task is associated with a party
 
 
+  @me
+  Scenario: Simple Start Task
+    Given a saved person
+    Given a party task with a simple status open closed machine
+    When I associate the party with the task
+    When I ask the service to save the task
+    Then the service responds with status code: 200
+    Then the task has an ID
+    Then the task is associated with a party
+    When I start work on the task
+    Then the task has a task in progress
+    Then the status of the task in progress is "open"
+    When I change the status to the next available status
+    Then the status of the task in progress is "closed"
+
+
 
