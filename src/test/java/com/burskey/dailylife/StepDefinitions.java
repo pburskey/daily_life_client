@@ -45,8 +45,12 @@ public class StepDefinitions {
     private String taskSaveURI;
     private String taskFindByPartyURI;
     private String taskFindByPartyAndIdURI;
+    private String taskStartURI;
     private TaskInProgress taskInProgress;
     private SimpleTask[] tasks;
+    private TaskInProgress[] tasksInProgress;
+    private String taskInProgressChangeStatusURI;
+    private String taskInProgressByTaskURI;
 
 
     @BeforeEach
@@ -98,6 +102,10 @@ public class StepDefinitions {
                 .withCommunicationFindByParty(this.communicationFindByPartyURI)
                 .withTaskSave(this.taskSaveURI)
                 .withTaskFindByPartyAndId(this.taskFindByPartyAndIdURI)
+                .withTaskFindByParty(this.taskFindByPartyURI)
+                .withTaskStart(this.taskStartURI)
+                .withTaskInProgressChangeStatus(this.taskInProgressChangeStatusURI)
+                .withTasksInProgressByTask(this.taskInProgressByTaskURI)
                 .withTaskFindByParty(this.taskFindByPartyURI);
         this.client = client;
     }
@@ -119,6 +127,9 @@ public class StepDefinitions {
         this.taskSaveURI = loader.get(LambdaResourceLoader.Thing.TaskSave);
         this.taskFindByPartyURI = loader.get(LambdaResourceLoader.Thing.TaskFindByParty);
         this.taskFindByPartyAndIdURI = loader.get(LambdaResourceLoader.Thing.TaskFindByPartyAndCommunication);
+        this.taskStartURI = loader.get(LambdaResourceLoader.Thing.TaskStart);
+        this.taskInProgressChangeStatusURI = loader.get(LambdaResourceLoader.Thing.TaskInProgressChangeStatus);
+        this.taskInProgressByTaskURI = loader.get(LambdaResourceLoader.Thing.TasksInProgressByTask);
 
     }
 
@@ -473,9 +484,15 @@ public class StepDefinitions {
 
     }
     @When("I start work on the task")
-    public void i_start_work_on_the_task() {
+    public void i_start_work_on_the_task() throws JsonProcessingException {
         Assertions.assertNotNull(this.task);
-        this.taskInProgress = this.task.start();
+        this.response = this.client.startTask(this.task.getId());
+        if (this.response.getStatusCode().is2xxSuccessful()) {
+            ObjectMapper mapper = new ObjectMapper();
+            TaskInProgress aTip = mapper.readValue((String) this.response.getBody(), TaskInProgress.class);
+            this.taskInProgress = aTip;
+        }
+
     }
     @Then("the task has a task in progress")
     public void the_task_has_a_task_in_progress() {
@@ -489,11 +506,20 @@ public class StepDefinitions {
         Assertions.assertEquals(string, this.taskInProgress.getStatus().getStatus().getDescription());
     }
     @When("I change the status to the next available status")
-    public void i_change_the_status_to_the_next_available_status() {
+    public void i_change_the_status_to_the_next_available_status() throws JsonProcessingException {
         Assertions.assertNotNull(this.task);
         Assertions.assertNotNull(this.taskInProgress);
-        Status[] next = this.task.getStatusStateMachine().available(this.taskInProgress.getStatus().getStatus());
-        this.taskInProgress = this.task.changeTo(this.taskInProgress, next[0]);
+        Status[] nextAvailable = this.task.getStatusStateMachine().available(this.taskInProgress.getStatus().getStatus());
+        assertNotNull(nextAvailable);
+        Status nextStatus = nextAvailable[0];
+        assertNotNull(nextStatus);
+        this.response = this.client.changeTaskInProgressStatusTo(this.taskInProgress.getID(), nextStatus.getId());
+        if (this.response.getStatusCode().is2xxSuccessful()) {
+            ObjectMapper mapper = new ObjectMapper();
+            TaskInProgress aTip = mapper.readValue((String) this.response.getBody(), TaskInProgress.class);
+            this.taskInProgress = aTip;
+        }
+
     }
 
 
@@ -503,7 +529,7 @@ public class StepDefinitions {
         Assertions.assertNotNull(this.task);
 
         Assertions.assertNotNull(this.client);
-        this.response = this.client.findTaskByPartyAndTaskID(this.task.getPartyID(), this.task.getId());
+        this.response = this.client.findTaskTaskID( this.task.getId());
         if (this.response.getStatusCode().is2xxSuccessful()) {
             ObjectMapper mapper = new ObjectMapper();
             SimpleTask aTask = mapper.readValue((String) this.response.getBody(), SimpleTask.class);
@@ -530,6 +556,30 @@ public class StepDefinitions {
     @Then("the tasks have been found")
     public void the_tasks_have_been_found() {
         Assertions.assertNotNull(this.tasks);
+    }
+
+
+
+    @When("I search for tasks in progress associated with the task and party")
+    public void i_search_for_tasks_in_progress_associated_with_the_task_and_party() throws JsonProcessingException {
+        Assertions.assertNotNull(this.task);
+
+        Assertions.assertNotNull(this.client);
+        this.response = this.client.findTasksInProgressByTask(this.task.getId());
+        if (this.response.getStatusCode().is2xxSuccessful() && this.response.getBody()  != null) {
+            ObjectMapper mapper = new ObjectMapper();
+            TaskInProgress[] tips = mapper.readValue((String) this.response.getBody(), TaskInProgress[].class);
+            this.tasksInProgress = tips;
+        }
+    }
+    @Then("{int} tasks in progress have been found")
+    public void tasks_in_progress_have_been_found(Integer int1) {
+        if (int1 > 0){
+            Assertions.assertNotNull(this.tasksInProgress);
+            Assertions.assertEquals(int1, this.tasksInProgress.length);
+        }else{
+            Assertions.assertTrue(this.tasksInProgress == null || this.tasksInProgress.length == 0);
+        }
     }
 
 }

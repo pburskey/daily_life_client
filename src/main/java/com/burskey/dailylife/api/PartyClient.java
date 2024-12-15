@@ -3,6 +3,7 @@ package com.burskey.dailylife.api;
 import com.burskey.dailylife.party.domain.Communication;
 import com.burskey.dailylife.party.domain.Party;
 import com.burskey.dailylife.task.domain.SimpleTask;
+import com.burskey.dailylife.task.domain.Task;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -27,9 +28,24 @@ public class PartyClient {
     private RestClient taskSaveClient;
     private RestClient taskFindByPartyAndIdClient;
     private RestClient taskFindByPartyIdClient;
+    private RestClient taskStartClient;
+    private RestClient taskInProgressChangeStatusClient;
+    private RestClient tasksInProgressByTaskClient;
 
     public static PartyClient Builder() {
         return new PartyClient();
+    }
+
+
+    public PartyClient withTasksInProgressByTask(String aURI)
+    {
+
+        DefaultUriBuilderFactory factory = new DefaultUriBuilderFactory(aURI);
+
+        RestClient restClient = RestClient.builder().uriBuilderFactory(factory).build();
+        this.tasksInProgressByTaskClient = restClient;
+        return this;
+
     }
 
 
@@ -61,7 +77,6 @@ public class PartyClient {
     }
 
 
-
     public PartyClient withFindByID(String aURI) {
 
         DefaultUriBuilderFactory factory = new DefaultUriBuilderFactory(aURI);
@@ -72,6 +87,7 @@ public class PartyClient {
 
         return this;
     }
+
     public PartyClient withTaskFindByPartyAndId(String aURI) {
         DefaultUriBuilderFactory factory = new DefaultUriBuilderFactory(aURI);
 
@@ -108,6 +124,28 @@ public class PartyClient {
 
         return this;
     }
+
+    public PartyClient withTaskStart(String aURI) {
+        DefaultUriBuilderFactory factory = new DefaultUriBuilderFactory(aURI);
+
+        RestClient restClient = RestClient.builder().uriBuilderFactory(factory).build();
+        this.taskStartClient = restClient;
+
+
+        return this;
+    }
+
+    public PartyClient withTaskInProgressChangeStatus(String aURI) {
+        DefaultUriBuilderFactory factory = new DefaultUriBuilderFactory(aURI);
+
+        RestClient restClient = RestClient.builder().uriBuilderFactory(factory).build();
+        this.taskInProgressChangeStatusClient = restClient;
+
+
+        return this;
+    }
+
+
     public ResponseEntity save(Party party) {
 
         ResponseEntity<String> response = null;
@@ -195,7 +233,6 @@ public class PartyClient {
     }
 
 
-
     public ResponseEntity findCommunicationByPartyAndCommunicationID(String partyID, String communicationID) {
 
         ResponseEntity<String> response = null;
@@ -242,7 +279,7 @@ public class PartyClient {
         return response;
     }
 
-    public ResponseEntity save(SimpleTask task) {
+    public ResponseEntity save(Task task) {
         ResponseEntity<String> response = null;
         try {
             response = this.taskSaveClient.post()
@@ -273,7 +310,6 @@ public class PartyClient {
     }
 
 
-
     public ResponseEntity findTasksByPartyID(String partyID) {
 
         ResponseEntity<String> response = null;
@@ -296,13 +332,14 @@ public class PartyClient {
         }
         return response;
     }
-    public ResponseEntity findTaskByPartyAndTaskID(String partyID, String taskID) {
+
+    public ResponseEntity findTaskTaskID( String taskID) {
 
         ResponseEntity<String> response = null;
         try {
             response = this.taskFindByPartyAndIdClient
                     .get()
-                    .uri("{partyID}/{taskID}", partyID, taskID)
+                    .uri("/{taskID}", taskID)
                     .retrieve()
                     .toEntity(String.class);
 
@@ -320,5 +357,77 @@ public class PartyClient {
     }
 
 
+    public ResponseEntity startTask(String taskId) {
 
+        ResponseEntity<String> response = null;
+        try {
+            response = this.taskStartClient
+                    .get()
+                    .uri("/{task_id}/start", taskId)
+                    .retrieve()
+                    .toEntity(String.class);
+
+        } catch (HttpClientErrorException ex) {
+            // Handle client errors (4xx)
+            return ResponseEntity.status(ex.getStatusCode()).body(ex.getResponseBodyAsString());
+        } catch (HttpServerErrorException ex) {
+            // Handle server errors (5xx)
+            return ResponseEntity.status(ex.getStatusCode()).body(ex.getResponseBodyAsString());
+        } catch (Exception ex) {
+            // Handle other exceptions
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred");
+        }
+        return response;
+    }
+
+
+    public ResponseEntity changeTaskInProgressStatusTo(String tipId, String statusId) {
+
+        ResponseEntity<String> response = null;
+        try {
+            response = this.taskInProgressChangeStatusClient
+                    .get()
+                    .uri("/{tip_id}/changeTo/{status_id}", tipId, statusId)
+                    .retrieve()
+                    .toEntity(String.class);
+
+        } catch (HttpClientErrorException ex) {
+            // Handle client errors (4xx)
+            return ResponseEntity.status(ex.getStatusCode()).body(ex.getResponseBodyAsString());
+        } catch (HttpServerErrorException ex) {
+            // Handle server errors (5xx)
+            return ResponseEntity.status(ex.getStatusCode()).body(ex.getResponseBodyAsString());
+        } catch (Exception ex) {
+            // Handle other exceptions
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred");
+        }
+        return response;
+
+
+
+    }
+
+    public ResponseEntity findTasksInProgressByTask(String taskId) {
+
+        ResponseEntity<String> response = null;
+        try {
+            response = this.tasksInProgressByTaskClient
+                    .get()
+                    .uri("/{task_id}/tasksinprogress", taskId)
+                    .retrieve()
+                    .toEntity(String.class);
+
+        } catch (HttpClientErrorException ex) {
+            // Handle client errors (4xx)
+            return ResponseEntity.status(ex.getStatusCode()).body(ex.getResponseBodyAsString());
+        } catch (HttpServerErrorException ex) {
+            // Handle server errors (5xx)
+            return ResponseEntity.status(ex.getStatusCode()).body(ex.getResponseBodyAsString());
+        } catch (Exception ex) {
+            // Handle other exceptions
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred");
+        }
+        return response;
+
+    }
 }

@@ -26,7 +26,10 @@ public class LambdaResourceLoader {
         CommunicationFindByParty("party/communications/"),
         TaskFindByPartyAndCommunication("party/task/"),
         TaskFindByParty("party/tasks/"),
-        TaskSave("party/task");
+        TaskSave("party/task"),
+        TaskStart("party/task"),
+        TasksInProgressByTask("/party/task"),
+        TaskInProgressChangeStatus("/party/taskinprogress");
 
         String extension = null;
 
