@@ -67,7 +67,6 @@ Feature: Sunny Day
 
 
 
-  @me
   Scenario: Start task and resume
     Given a saved person
     Given a party task with a simple status open closed machine
