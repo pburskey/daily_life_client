@@ -66,8 +66,23 @@ Feature: Sunny Day
     And the tasks have been found
 
 
-
   Scenario: Start task and resume
+    Given a saved person
+    Given a party task with a simple status open closed machine
+    When I associate the party with the task
+    When I ask the service to save the task
+    Then the service responds with status code: 200
+    Then the task has an ID
+    Then the task is associated with a party
+    When I start work on the task
+    Then the task has a task in progress
+    Then the status of the task in progress is "open"
+
+
+
+
+  @me
+  Scenario: Find tasks in progress by task id
     Given a saved person
     Given a party task with a simple status open closed machine
     When I associate the party with the task
