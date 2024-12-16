@@ -96,3 +96,17 @@ Feature: Sunny Day
     When I search for tasks in progress associated with the task and party
     Then the service responds with status code: 200
     And 1 tasks in progress have been found
+
+
+  @me
+    Scenario:
+      Given a saved person
+      Given a simple start stop task identified as "a"
+      When I ask the service to save the task "a"
+      Then task "a" has an id
+      When I start work on task "a"
+      Then task "a" has a task in progress
+      When I change the status of the active task in progress for task "a" to the next available status
+      Then the service responds with status code: 200
+      And 1 tasks in progress have been found for task: "a"
+
