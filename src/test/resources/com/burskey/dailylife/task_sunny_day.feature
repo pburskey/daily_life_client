@@ -100,7 +100,7 @@ Feature: Sunny Day
 
 
   @me
-    Scenario:
+    Scenario: Fina Named tasks in progress for a named task
       Given a saved person
       Given a simple start stop task identified as "a"
       When I ask the service to save the task "a"

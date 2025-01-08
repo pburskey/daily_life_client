@@ -49,7 +49,7 @@ public class StepDefinitions {
     private String taskFindByPartyAndIdURI;
     private String taskStartURI;
     private Map<String, Task> tasks;
-    private Map<String, TaskInProgress> tasksInProgress;
+    private Map<Task, List<TaskInProgress>> tasksInProgress;
 
 
 
@@ -440,7 +440,7 @@ public class StepDefinitions {
 
 
     private TaskInProgress getSoleTaskInProgress() {
-        TaskInProgress aTip = (TaskInProgress) this.tasksInProgress.values().toArray()[0];
+        TaskInProgress aTip = (TaskInProgress) this.tasksInProgress.get(this.getSoleTask()).get(0);
         return aTip;
     }
 
@@ -509,13 +509,15 @@ public class StepDefinitions {
 
     @When("I start work on the task")
     public void i_start_work_on_the_task() throws JsonProcessingException {
-        Assertions.assertNotNull(this.getSoleTask());
+        Task aTask = this.getSoleTask();
+        Assertions.assertNotNull(aTask);
         this.response = this.client.startTask(this.getSoleTask().getId());
         if (this.response.getStatusCode().is2xxSuccessful()) {
             ObjectMapper mapper = new ObjectMapper();
             TaskInProgress aTip = mapper.readValue((String) this.response.getBody(), TaskInProgress.class);
             this.tasksInProgress.clear();
-            this.tasksInProgress.put(aTip.getID(), aTip);
+            List<TaskInProgress> list = new ArrayList<TaskInProgress>();
+            this.tasksInProgress.put(aTask, list);
         }
 
     }
@@ -535,7 +537,8 @@ public class StepDefinitions {
 
     @When("I change the status to the next available status")
     public void i_change_the_status_to_the_next_available_status() throws JsonProcessingException {
-        Assertions.assertNotNull(this.getSoleTask());
+        Task aTask = this.getSoleTask();
+        Assertions.assertNotNull(aTask);
         Assertions.assertNotNull(this.getSoleTaskInProgress());
         Status[] nextAvailable = this.getSoleTask().getStatusStateMachine().available(this.getSoleTaskInProgress().getStatus().getStatus());
         assertNotNull(nextAvailable);
@@ -546,7 +549,8 @@ public class StepDefinitions {
             ObjectMapper mapper = new ObjectMapper();
             TaskInProgress aTip = mapper.readValue((String) this.response.getBody(), TaskInProgress.class);
             this.tasksInProgress.clear();
-            this.tasksInProgress.put(aTip.getID(), aTip);
+            List<TaskInProgress> list = new ArrayList<TaskInProgress>();
+            this.tasksInProgress.put(aTask, list);
         }
 
     }
@@ -597,7 +601,8 @@ public class StepDefinitions {
 
     @When("I search for tasks in progress associated with the task and party")
     public void i_search_for_tasks_in_progress_associated_with_the_task_and_party() throws JsonProcessingException {
-        Assertions.assertNotNull(this.getSoleTask());
+        Task aTask = this.getSoleTask();
+        Assertions.assertNotNull(aTask);
 
         Assertions.assertNotNull(this.client);
         this.response = this.client.findTasksInProgressByTask(this.getSoleTask().getId());
@@ -605,9 +610,11 @@ public class StepDefinitions {
             ObjectMapper mapper = new ObjectMapper();
             TaskInProgress[] tips = mapper.readValue((String) this.response.getBody(), TaskInProgress[].class);
             this.tasksInProgress.clear();
+            List<TaskInProgress> list = new ArrayList<TaskInProgress>();
+            this.tasksInProgress.put(aTask, list);
             for (int i = 0; tips != null && i < tips.length; i++) {
                 TaskInProgress tip = tips[i];
-                this.tasksInProgress.put(tip.getID(), tip);
+                list.add(tip);
             }
         }
     }
@@ -681,7 +688,9 @@ public class StepDefinitions {
             ObjectMapper mapper = new ObjectMapper();
             TaskInProgress aTip = mapper.readValue((String) this.response.getBody(), TaskInProgress.class);
             this.tasksInProgress.clear();
-            this.tasksInProgress.put(aTip.getID(), aTip);
+            List<TaskInProgress> list = new ArrayList<TaskInProgress>();
+            this.tasksInProgress.put(aTask, list);
+            list.add(aTip);
         }
     }
 
@@ -696,9 +705,11 @@ public class StepDefinitions {
             ObjectMapper mapper = new ObjectMapper();
             TaskInProgress[] tips = mapper.readValue((String) this.response.getBody(), TaskInProgress[].class);
             this.tasksInProgress.clear();
+            List<TaskInProgress> list = new ArrayList<TaskInProgress>();
+            this.tasksInProgress.put(aTask, list);
             for (int i = 0; tips != null && i < tips.length; i++) {
                 TaskInProgress tip = tips[i];
-                this.tasksInProgress.put(tip.getID(), tip);
+                list.add(tip);
             }
         }
 
@@ -722,7 +733,8 @@ public class StepDefinitions {
             ObjectMapper mapper = new ObjectMapper();
             TaskInProgress aTip = mapper.readValue((String) this.response.getBody(), TaskInProgress.class);
             this.tasksInProgress.clear();
-            this.tasksInProgress.put(aTip.getID(), aTip);
+            List<TaskInProgress> list = new ArrayList<TaskInProgress>();
+            list.add(aTip);
         }
 
     }
@@ -738,9 +750,11 @@ public class StepDefinitions {
             ObjectMapper mapper = new ObjectMapper();
             TaskInProgress[] tips = mapper.readValue((String) this.response.getBody(), TaskInProgress[].class);
             this.tasksInProgress.clear();
+            List<TaskInProgress> list = new ArrayList<TaskInProgress>();
+            this.tasksInProgress.put(aTask, list);
             for (int i = 0; tips != null && i < tips.length; i++) {
                 TaskInProgress tip = tips[i];
-                this.tasksInProgress.put(tip.getID(), tip);
+                list.add(tip);
             }
         }
     }
