@@ -1,6 +1,7 @@
 Feature: Sunny Day
 
   Background:
+    Given a new scenario
     Given an AWS Stage: "dev"
     Given an environment provided AWS Bucket Name
     Given an environment provided IAM Access Key
@@ -81,7 +82,7 @@ Feature: Sunny Day
 
 
 
-  @me
+
   Scenario: Find tasks in progress by task id
     Given a saved person
     Given a party task with a simple status open closed machine

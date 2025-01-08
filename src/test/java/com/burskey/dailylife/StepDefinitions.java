@@ -11,6 +11,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import io.cucumber.java.Before;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
@@ -20,8 +21,7 @@ import org.springframework.http.ResponseEntity;
 
 import java.util.*;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 
 public class StepDefinitions {
 
@@ -33,7 +33,7 @@ public class StepDefinitions {
     String stackName = null;
     String stage = null;
     Person person = null;
-    SimpleTask task = null;
+
     private ResponseEntity response;
     private PartyClient client;
     private String partySaveURI;
@@ -42,25 +42,26 @@ public class StepDefinitions {
     private String communicationSaveURI;
     private String communicationFindByPartyURI;
     private String communicationFindByPartyAndIdURI;
+    private String taskInProgressChangeStatusURI;
+    private String taskInProgressByTaskURI;
     private String taskSaveURI;
     private String taskFindByPartyURI;
     private String taskFindByPartyAndIdURI;
     private String taskStartURI;
-    private TaskInProgress taskInProgress;
-    private SimpleTask[] tasks;
-    private TaskInProgress[] tasksInProgress;
-    private String taskInProgressChangeStatusURI;
-    private String taskInProgressByTaskURI;
+    private Map<String, Task> tasks;
+    private Map<String, TaskInProgress> tasksInProgress;
 
 
-    @BeforeEach
-    void setUp() {
+
+
+    @Given("a new scenario")
+    public void a_new_scenario() {
         this.response = null;
         this.person = null;
         this.communication = null;
-        this.task = null;
-        this.tasks = null;
-        this.taskInProgress = null;
+
+        this.tasks = new HashMap<>();
+        this.tasksInProgress = new HashMap<>();
     }
 
     @Given("an AWS Region: {string}")
@@ -389,7 +390,7 @@ public class StepDefinitions {
             Map<String, String[]> progressionConfiguration = new HashMap();
             SimpleStatus start = new SimpleStatus("open");
             SimpleStatus end = new SimpleStatus("closed");
-            progressionConfiguration.put(start.getId(), new String[] {end.getId()});
+            progressionConfiguration.put(start.getId(), new String[]{end.getId()});
             progressionConfiguration.put(end.getId(), null);
 
 
@@ -399,7 +400,8 @@ public class StepDefinitions {
 
             aTask.setStatusStateMachine(new SimpleStatusStateMachine(progressionConfiguration, start.getId(), end.getId(), state));
 
-            this.task = aTask;
+            this.tasks.clear();
+            this.tasks.put(aTask.getId(), aTask);
 
 //
 //            ObjectMapper mapper = new ObjectMapper();
@@ -418,41 +420,62 @@ public class StepDefinitions {
 
         }
     }
-    public List<String> newWithValue(String aValue){
+
+    public List<String> newWithValue(String aValue) {
         List aList = new ArrayList();
         aList.add(aValue);
         return aList;
     }
+
+    private Task getSoleTask() {
+        Task aTask = (Task) this.tasks.values().toArray()[0];
+        return aTask;
+    }
+
+    private Task getTaskLabeledAs(String aValue) {
+        Task aTask = (Task) this.tasks.get(aValue);
+        return aTask;
+    }
+
+
+
+    private TaskInProgress getSoleTaskInProgress() {
+        TaskInProgress aTip = (TaskInProgress) this.tasksInProgress.values().toArray()[0];
+        return aTip;
+    }
+
     @When("I ask the service to save the task")
     public void i_ask_the_service_to_save_the_task() throws JsonProcessingException {
-        Assertions.assertNotNull(this.task);
+        Assertions.assertNotNull(this.getSoleTask());
         Assertions.assertNotNull(this.client);
-        this.response = this.client.save(this.task);
+        this.response = this.client.save(this.getSoleTask());
         if (this.response.getStatusCode().is2xxSuccessful()) {
             ObjectMapper mapper = new ObjectMapper();
             SimpleTask aTask = mapper.readValue((String) this.response.getBody(), SimpleTask.class);
-            this.task = aTask;
+            this.tasks.clear();
+            this.tasks.put(aTask.getId(), aTask);
         }
     }
 
     @Then("the task has an ID")
     public void the_task_has_an_id() {
-        Assertions.assertNotNull(this.task);
-        Assertions.assertNotNull(this.task.getId());
+        Assertions.assertNotNull(this.getSoleTask());
+        Assertions.assertNotNull(this.getSoleTask().getId());
     }
 
     @Then("the task is associated with a party")
     public void the_task_is_associated_with_a_party() {
-        Assertions.assertNotNull(this.task);
-        Assertions.assertNotNull(this.task.getPartyID());
+        Assertions.assertNotNull(this.getSoleTask());
+        Assertions.assertNotNull(this.getSoleTask().getPartyID());
     }
 
     @When("I associate the party with the task")
     public void i_associate_the_party_with_the_task() {
-        Assertions.assertNotNull(this.task);
+        Assertions.assertNotNull(this.getSoleTask());
         Assertions.assertNotNull(this.person);
         Assertions.assertNotNull(this.person.getId());
-        this.task.setPartyID(this.person.getId());
+        SimpleTask aTask = (SimpleTask) this.getSoleTask();
+        aTask.setPartyID(this.person.getId());
     }
 
 
@@ -460,96 +483,109 @@ public class StepDefinitions {
     public void a_party_task_with_a_simple_status_open_closed_machine() {
 
 
-            SimpleTask aTask = new SimpleTask();
-                aTask.setTitle("Title");
-                aTask.setDescription("Description");
-                aTask.setCreationDate(new Date());
+        SimpleTask aTask = new SimpleTask();
+        aTask.setTitle("Title");
+        aTask.setDescription("Description");
+        aTask.setCreationDate(new Date());
 
-            Map<String, String[]> progressionConfiguration = new HashMap();
-            SimpleStatus start = new SimpleStatus("open");
-            SimpleStatus end = new SimpleStatus("closed");
-            progressionConfiguration.put(start.getId(), new String[] {end.getId()});
-            progressionConfiguration.put(end.getId(), null);
+        Map<String, String[]> progressionConfiguration = new HashMap();
+        SimpleStatus start = new SimpleStatus("open");
+        SimpleStatus end = new SimpleStatus("closed");
+        progressionConfiguration.put(start.getId(), new String[]{end.getId()});
+        progressionConfiguration.put(end.getId(), null);
 
 
-            Map<String, SimpleStatus> state = new HashMap<>();
-            state.put(start.getId(), start);
-            state.put(end.getId(), end);
+        Map<String, SimpleStatus> state = new HashMap<>();
+        state.put(start.getId(), start);
+        state.put(end.getId(), end);
 
-            aTask.setStatusStateMachine(new SimpleStatusStateMachine(progressionConfiguration, start.getId(), end.getId(), state));
+        aTask.setStatusStateMachine(new SimpleStatusStateMachine(progressionConfiguration, start.getId(), end.getId(), state));
 
-            this.task = aTask;
-
+        this.tasks.clear();
+        this.tasks.put(aTask.getId(), aTask);
 
 
     }
+
     @When("I start work on the task")
     public void i_start_work_on_the_task() throws JsonProcessingException {
-        Assertions.assertNotNull(this.task);
-        this.response = this.client.startTask(this.task.getId());
+        Assertions.assertNotNull(this.getSoleTask());
+        this.response = this.client.startTask(this.getSoleTask().getId());
         if (this.response.getStatusCode().is2xxSuccessful()) {
             ObjectMapper mapper = new ObjectMapper();
             TaskInProgress aTip = mapper.readValue((String) this.response.getBody(), TaskInProgress.class);
-            this.taskInProgress = aTip;
+            this.tasksInProgress.clear();
+            this.tasksInProgress.put(aTip.getID(), aTip);
         }
 
     }
+
     @Then("the task has a task in progress")
     public void the_task_has_a_task_in_progress() {
-        Assertions.assertNotNull(this.task);
-        Assertions.assertNotNull(this.taskInProgress);
+        Assertions.assertNotNull(this.getSoleTask());
+        Assertions.assertNotNull(this.getSoleTaskInProgress());
     }
+
     @Then("the status of the task in progress is {string}")
     public void the_status_of_the_task_in_progress_is(String string) {
-        Assertions.assertNotNull(this.task);
-        Assertions.assertNotNull(this.taskInProgress);
-        Assertions.assertEquals(string, this.taskInProgress.getStatus().getStatus().getDescription());
+        Assertions.assertNotNull(this.getSoleTask());
+        Assertions.assertNotNull(this.getSoleTaskInProgress());
+        Assertions.assertEquals(string, this.getSoleTaskInProgress().getStatus().getStatus().getDescription());
     }
+
     @When("I change the status to the next available status")
     public void i_change_the_status_to_the_next_available_status() throws JsonProcessingException {
-        Assertions.assertNotNull(this.task);
-        Assertions.assertNotNull(this.taskInProgress);
-        Status[] nextAvailable = this.task.getStatusStateMachine().available(this.taskInProgress.getStatus().getStatus());
+        Assertions.assertNotNull(this.getSoleTask());
+        Assertions.assertNotNull(this.getSoleTaskInProgress());
+        Status[] nextAvailable = this.getSoleTask().getStatusStateMachine().available(this.getSoleTaskInProgress().getStatus().getStatus());
         assertNotNull(nextAvailable);
         Status nextStatus = nextAvailable[0];
         assertNotNull(nextStatus);
-        this.response = this.client.changeTaskInProgressStatusTo(this.taskInProgress.getID(), nextStatus.getId());
+        this.response = this.client.changeTaskInProgressStatusTo(this.getSoleTaskInProgress().getID(), nextStatus.getId());
         if (this.response.getStatusCode().is2xxSuccessful()) {
             ObjectMapper mapper = new ObjectMapper();
             TaskInProgress aTip = mapper.readValue((String) this.response.getBody(), TaskInProgress.class);
-            this.taskInProgress = aTip;
+            this.tasksInProgress.clear();
+            this.tasksInProgress.put(aTip.getID(), aTip);
         }
 
     }
-
 
 
     @When("I ask the service to get the task by id")
     public void i_ask_the_service_to_get_the_task_by_id() throws JsonProcessingException {
-        Assertions.assertNotNull(this.task);
+        Assertions.assertNotNull(this.getSoleTask());
 
         Assertions.assertNotNull(this.client);
-        this.response = this.client.findTaskTaskID( this.task.getId());
+        this.response = this.client.findTaskTaskID(this.getSoleTask().getId());
         if (this.response.getStatusCode().is2xxSuccessful()) {
             ObjectMapper mapper = new ObjectMapper();
             SimpleTask aTask = mapper.readValue((String) this.response.getBody(), SimpleTask.class);
-            this.task = aTask;
+            this.tasks.clear();
+            this.tasks.put(aTask.getId(), aTask);
         }
     }
+
     @Then("the task has been found")
     public void the_task_has_been_found() {
-        Assertions.assertNotNull(this.task);
+        Assertions.assertNotNull(this.getSoleTask());
     }
+
     @When("I ask the service to get the task by party")
     public void i_ask_the_service_to_get_the_task_by_party() throws JsonProcessingException {
-        Assertions.assertNotNull(this.task);
+        Assertions.assertNotNull(this.getSoleTask());
 
         Assertions.assertNotNull(this.client);
-        this.response = this.client.findTasksByPartyID(this.task.getPartyID());
+        this.response = this.client.findTasksByPartyID(this.getSoleTask().getPartyID());
         if (this.response.getStatusCode().is2xxSuccessful()) {
             ObjectMapper mapper = new ObjectMapper();
             SimpleTask[] tasks = mapper.readValue((String) this.response.getBody(), SimpleTask[].class);
-            this.tasks = tasks;
+            this.tasks.clear();
+            for (int i = 0; i < tasks.length; i++) {
+                SimpleTask task = tasks[i];
+                this.tasks.put(task.getId(), task);
+            }
+
         }
     }
 
@@ -559,26 +595,153 @@ public class StepDefinitions {
     }
 
 
-
     @When("I search for tasks in progress associated with the task and party")
     public void i_search_for_tasks_in_progress_associated_with_the_task_and_party() throws JsonProcessingException {
-        Assertions.assertNotNull(this.task);
+        Assertions.assertNotNull(this.getSoleTask());
 
         Assertions.assertNotNull(this.client);
-        this.response = this.client.findTasksInProgressByTask(this.task.getId());
-        if (this.response.getStatusCode().is2xxSuccessful() && this.response.getBody()  != null) {
+        this.response = this.client.findTasksInProgressByTask(this.getSoleTask().getId());
+        if (this.response.getStatusCode().is2xxSuccessful() && this.response.getBody() != null) {
             ObjectMapper mapper = new ObjectMapper();
             TaskInProgress[] tips = mapper.readValue((String) this.response.getBody(), TaskInProgress[].class);
-            this.tasksInProgress = tips;
+            this.tasksInProgress.clear();
+            for (int i = 0; tips != null && i < tips.length; i++) {
+                TaskInProgress tip = tips[i];
+                this.tasksInProgress.put(tip.getID(), tip);
+            }
         }
     }
+
     @Then("{int} tasks in progress have been found")
     public void tasks_in_progress_have_been_found(Integer int1) {
-        if (int1 > 0){
+        if (int1 > 0) {
             Assertions.assertNotNull(this.tasksInProgress);
-            Assertions.assertEquals(int1, this.tasksInProgress.length);
-        }else{
-            Assertions.assertTrue(this.tasksInProgress == null || this.tasksInProgress.length == 0);
+            Assertions.assertEquals(int1, this.tasksInProgress.size());
+        } else {
+            Assertions.assertTrue(this.tasksInProgress == null || this.tasksInProgress.size() == 0);
+        }
+    }
+
+
+    @Given("a simple start stop task identified as {string}")
+    public void a_simple_start_stop_task_identified_as(String string) {
+
+        SimpleTask aTask = new SimpleTask();
+        aTask.setTitle("Title");
+        aTask.setDescription("Description");
+        aTask.setCreationDate(new Date());
+
+        Map<String, String[]> progressionConfiguration = new HashMap();
+        SimpleStatus start = new SimpleStatus("start");
+        SimpleStatus end = new SimpleStatus("stop");
+        progressionConfiguration.put(start.getId(), new String[]{end.getId()});
+        progressionConfiguration.put(end.getId(), null);
+
+
+        Map<String, SimpleStatus> state = new HashMap<>();
+        state.put(start.getId(), start);
+        state.put(end.getId(), end);
+
+        aTask.setStatusStateMachine(new SimpleStatusStateMachine(progressionConfiguration, start.getId(), end.getId(), state));
+
+        this.tasks.clear();
+        this.tasks.put(string, aTask);
+    }
+
+    @When("I ask the service to save the task {string}")
+    public void i_ask_the_service_to_save_the_task(String string) throws JsonProcessingException {
+
+        Task aTask = this.tasks.get(string);
+
+        Assertions.assertNotNull(aTask);
+        Assertions.assertNotNull(this.client);
+        this.response = this.client.save(aTask);
+        if (this.response.getStatusCode().is2xxSuccessful()) {
+            ObjectMapper mapper = new ObjectMapper();
+            aTask = mapper.readValue((String) this.response.getBody(), SimpleTask.class);
+            this.tasks.put(string, aTask);
+        }
+    }
+
+    @Then("task {string} has an id")
+    public void task_has_an_id(String string) {
+        Task aTask = this.tasks.get(string);
+
+        Assertions.assertNotNull(aTask);
+        Assertions.assertNotNull(aTask.getId());
+    }
+
+    @When("I start work on task {string}")
+    public void i_start_work_on_task(String string) throws JsonProcessingException {
+        Task aTask = this.tasks.get(string);
+        Assertions.assertNotNull(aTask);
+
+        this.response = this.client.startTask(aTask.getId());
+        if (this.response.getStatusCode().is2xxSuccessful()) {
+            ObjectMapper mapper = new ObjectMapper();
+            TaskInProgress aTip = mapper.readValue((String) this.response.getBody(), TaskInProgress.class);
+            this.tasksInProgress.clear();
+            this.tasksInProgress.put(aTip.getID(), aTip);
+        }
+    }
+
+    @Then("task {string} has a task in progress")
+    public void task_has_a_task_in_progress(String string) throws JsonProcessingException {
+        Task aTask = this.getTaskLabeledAs(string);
+        Assertions.assertNotNull(aTask);
+
+        Assertions.assertNotNull(this.client);
+        this.response = this.client.findTasksInProgressByTask(aTask.getId());
+        if (this.response.getStatusCode().is2xxSuccessful() && this.response.getBody() != null) {
+            ObjectMapper mapper = new ObjectMapper();
+            TaskInProgress[] tips = mapper.readValue((String) this.response.getBody(), TaskInProgress[].class);
+            this.tasksInProgress.clear();
+            for (int i = 0; tips != null && i < tips.length; i++) {
+                TaskInProgress tip = tips[i];
+                this.tasksInProgress.put(tip.getID(), tip);
+            }
+        }
+
+        assertNotNull(this.tasksInProgress);
+        assertFalse(this.tasksInProgress.isEmpty());
+
+
+
+    }
+
+    @When("I change the status of the active task in progress for task {string} to the next available status")
+    public void i_change_the_status_of_the_active_task_in_progress_for_task_to_the_next_available_status(String string) throws JsonProcessingException {
+        Task aTask = this.tasks.get(string);
+        Assertions.assertNotNull(this.getSoleTaskInProgress());
+        Status[] nextAvailable = aTask.getStatusStateMachine().available(this.getSoleTaskInProgress().getStatus().getStatus());
+        assertNotNull(nextAvailable);
+        Status nextStatus = nextAvailable[0];
+        assertNotNull(nextStatus);
+        this.response = this.client.changeTaskInProgressStatusTo(this.getSoleTaskInProgress().getID(), nextStatus.getId());
+        if (this.response.getStatusCode().is2xxSuccessful()) {
+            ObjectMapper mapper = new ObjectMapper();
+            TaskInProgress aTip = mapper.readValue((String) this.response.getBody(), TaskInProgress.class);
+            this.tasksInProgress.clear();
+            this.tasksInProgress.put(aTip.getID(), aTip);
+        }
+
+    }
+
+    @Then("{int} tasks in progress have been found for task: {string}")
+    public void tasks_in_progress_have_been_found_for_task(Integer int1, String string) throws JsonProcessingException {
+        Task aTask = this.getTaskLabeledAs(string);
+        Assertions.assertNotNull(aTask);
+
+        Assertions.assertNotNull(this.client);
+        this.response = this.client.findTasksInProgressByTask(aTask.getId());
+        if (this.response.getStatusCode().is2xxSuccessful() && this.response.getBody() != null) {
+            ObjectMapper mapper = new ObjectMapper();
+            TaskInProgress[] tips = mapper.readValue((String) this.response.getBody(), TaskInProgress[].class);
+            this.tasksInProgress.clear();
+            for (int i = 0; tips != null && i < tips.length; i++) {
+                TaskInProgress tip = tips[i];
+                this.tasksInProgress.put(tip.getID(), tip);
+            }
         }
     }
 
