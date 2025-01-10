@@ -30,6 +30,7 @@ public class PartyClient {
     private RestClient taskFindByPartyIdClient;
     private RestClient taskStartClient;
     private RestClient taskInProgressChangeStatusClient;
+    private RestClient taskInProgressStatusHistoryClient;
     private RestClient tasksInProgressByTaskClient;
 
     public static PartyClient Builder() {
@@ -140,6 +141,9 @@ public class PartyClient {
 
         RestClient restClient = RestClient.builder().uriBuilderFactory(factory).build();
         this.taskInProgressChangeStatusClient = restClient;
+
+        restClient = RestClient.builder().uriBuilderFactory(factory).build();
+        this.taskInProgressStatusHistoryClient = restClient;
 
 
         return this;
@@ -430,4 +434,31 @@ public class PartyClient {
         return response;
 
     }
+
+
+
+    public ResponseEntity findStatusHistoryForTaskInProgrsss(String tipId) {
+
+        ResponseEntity<String> response = null;
+        try {
+            response = this.taskInProgressStatusHistoryClient
+                    .get()
+                    .uri("/{tip_id}/statusHistory", tipId)
+                    .retrieve()
+                    .toEntity(String.class);
+
+        } catch (HttpClientErrorException ex) {
+            // Handle client errors (4xx)
+            return ResponseEntity.status(ex.getStatusCode()).body(ex.getResponseBodyAsString());
+        } catch (HttpServerErrorException ex) {
+            // Handle server errors (5xx)
+            return ResponseEntity.status(ex.getStatusCode()).body(ex.getResponseBodyAsString());
+        } catch (Exception ex) {
+            // Handle other exceptions
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred");
+        }
+        return response;
+
+    }
+
 }

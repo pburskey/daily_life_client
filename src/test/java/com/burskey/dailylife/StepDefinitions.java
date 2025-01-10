@@ -50,8 +50,7 @@ public class StepDefinitions {
     private String taskStartURI;
     private Map<String, Task> tasks;
     private Map<Task, List<TaskInProgress>> tasksInProgress;
-
-
+    private StatusPoint[] statusHistory;
 
 
     @Given("a new scenario")
@@ -62,6 +61,7 @@ public class StepDefinitions {
 
         this.tasks = new HashMap<>();
         this.tasksInProgress = new HashMap<>();
+        this.statusHistory = null;
     }
 
     @Given("an AWS Region: {string}")
@@ -517,6 +517,7 @@ public class StepDefinitions {
             TaskInProgress aTip = mapper.readValue((String) this.response.getBody(), TaskInProgress.class);
             this.tasksInProgress.clear();
             List<TaskInProgress> list = new ArrayList<TaskInProgress>();
+            list.add(aTip);
             this.tasksInProgress.put(aTask, list);
         }
 
@@ -550,6 +551,7 @@ public class StepDefinitions {
             TaskInProgress aTip = mapper.readValue((String) this.response.getBody(), TaskInProgress.class);
             this.tasksInProgress.clear();
             List<TaskInProgress> list = new ArrayList<TaskInProgress>();
+            list.add(aTip);
             this.tasksInProgress.put(aTask, list);
         }
 
@@ -758,5 +760,41 @@ public class StepDefinitions {
             }
         }
     }
+
+    @When("I get the status history for the task in progress for task: {string}")
+    public void i_get_the_status_history_for_the_task_in_progress_for_task(String string) throws JsonProcessingException {
+        Task aTask = this.getTaskLabeledAs(string);
+        Assertions.assertNotNull(aTask);
+
+        TaskInProgress tip = this.getSoleTaskInProgress();
+        assertNotNull(tip);
+
+        this.response = this.client.findStatusHistoryForTaskInProgrsss(this.getSoleTaskInProgress().getID());
+        if (this.response.getStatusCode().is2xxSuccessful()) {
+            ObjectMapper mapper = new ObjectMapper();
+            StatusPoint[] points = mapper.readValue((String) this.response.getBody(), StatusPoint[].class);
+            this.statusHistory = points;
+
+        }
+    }
+    @Then("{int} status points have been found in the status history")
+    public void status_points_have_been_found_in_the_status_history(Integer int1) {
+        assertNotNull(this.statusHistory);
+        assertEquals(int1.intValue(), this.statusHistory.length);
+    }
+
+    @Then("the status history contains a status of {string}")
+    public void the_status_history_contains_a_status_of(String aString) {
+        assertNotNull(this.statusHistory);
+        boolean found = false;
+        for (int i = 0; !found && i < this.statusHistory.length; i++) {
+            if (statusHistory[i] != null && statusHistory[i].getStatus().getDescription().equals(aString)) {
+                found = true;
+            }
+        }
+        assertTrue(found);
+    }
+
+
 
 }

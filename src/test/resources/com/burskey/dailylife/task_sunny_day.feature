@@ -23,7 +23,7 @@ Feature: Sunny Day
     Then the task has an ID
     Then the task is associated with a party
 
-
+@me
   Scenario: Simple Start Task
     Given a saved person
     Given a party task with a simple status open closed machine
@@ -67,7 +67,7 @@ Feature: Sunny Day
     And the tasks have been found
 
 
-  Scenario: Start task and resume
+  Scenario: Start task
     Given a saved person
     Given a party task with a simple status open closed machine
     When I associate the party with the task
@@ -99,8 +99,7 @@ Feature: Sunny Day
     And 1 tasks in progress have been found
 
 
-  @me
-    Scenario: Fina Named tasks in progress for a named task
+    Scenario: Find Named tasks in progress for a named task
       Given a saved person
       Given a simple start stop task identified as "a"
       When I ask the service to save the task "a"
@@ -110,4 +109,13 @@ Feature: Sunny Day
       When I change the status of the active task in progress for task "a" to the next available status
       Then the service responds with status code: 200
       And 1 tasks in progress have been found for task: "a"
+      When I get the status history for the task in progress for task: "a"
+      Then the service responds with status code: 200
+      And 2 status points have been found in the status history
+      And the status history contains a status of "start"
+      And the status history contains a status of "stop"
+
+
+
+
 
